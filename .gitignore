@@ -1,0 +1,7 @@
+*.jnlp
+*.exe
+*.vscode
+*.bak
+*.log*
+*.ou*
+*.o

@@ -9,6 +9,14 @@
 #define _CRT_NO_VA_START_VALIDATION
 #endif
 
+#if (_WIN32 || __WIN32__ || __WIN32 || _WIN64 || __WIN64__ || __WIN64 || WINNT || __WINNT || __WINNT__ || __CYGWIN__)
+#define I64 "%I64d"
+#define U64 "%I64u"
+#else
+#define I64 "%lld"
+#define U64 "%llu"
+#endif
+
 #include <cstdio>
 #include <cctype>
 #include <string>
@@ -25,48 +33,6 @@
 #include <fcntl.h>
 #include <functional>
 #include <chrono>
-
-#if (_WIN32 || __WIN32__ || __WIN32 || _WIN64 || __WIN64__ || __WIN64 || WINNT || __WINNT || __WINNT__ || __CYGWIN__)
-#if !defined(_MSC_VER) || _MSC_VER > 1400
-#define NOMINMAX 1
-#include <windows.h>
-#else
-#define WORD unsigned short
-#include <unistd.h>
-#endif
-#include <io.h>
-#define ON_WINDOWS
-#if defined(_MSC_VER) && _MSC_VER > 1400
-#pragma warning(disable : 4127)
-#pragma warning(disable : 4146)
-#pragma warning(disable : 4458)
-#endif
-#else
-#define WORD unsigned short
-#include <unistd.h>
-#endif
-
-#define LF ((char)10)
-#define CR ((char)13)
-#define TAB ((char)9)
-#define SPACE ((char)' ')
-#define EOFC (255)
-
-#ifdef ON_WINDOWS
-#define I64 "%I64d"
-#define U64 "%I64u"
-#else
-#define I64 "%lld"
-#define U64 "%llu"
-#endif
-
-#ifdef _MSC_VER
-#define NORETURN __declspec(noreturn)
-#elif defined __GNUC__
-#define NORETURN __attribute__((noreturn))
-#else
-#define NORETURN
-#endif
 
 template <typename... Args>
 std::string __format(const char *format, Args... args) {
@@ -192,10 +158,11 @@ typename __bigo_enable_if<is_iterable<T>::value, void>::type
 __print_one(const T &t) {
     for (typename T::const_iterator it = t.begin(); it != t.end(); it++) {
         if (it != t.begin()) {
-            if (is_string_like<decltype(*it)>::value)
+            if (is_string_like<decltype(*it)>::value) {
                 std::cout << ' ';
-            else
+            } else {
                 std::cout << " \n"[(is_iterable<decltype(*it)>::value)];
+            }
         }
         __print_one(*it);
     }
@@ -219,13 +186,14 @@ template<typename A, typename B>
 void __print_range(A begin, B end) {
     bool first = true;
     for (B it = B(begin); it != end; it++) {
-        if (first)
+        if (first) {
             first = false;
-        else {
-            if (is_string_like<decltype(*it)>::value)
+        } else {
+            if (is_string_like<decltype(*it)>::value) {
                 std::cout << ' ';
-            else
+            } else {
                 std::cout << " \n"[(is_iterable<decltype(*it)>::value)];
+            }
         }
         __print_one(*it);
     }
@@ -249,10 +217,11 @@ static bool __is_slash(const std::string &s, size_t pos) {
 }
 
 static char __get_char(const std::string &s, size_t &pos) {
-    if (__is_slash(s, pos))
+    if (__is_slash(s, pos)) {
         pos += 2;
-    else
+    } else {
         pos++;
+    }
 
     return s[pos - 1];
 }
@@ -336,10 +305,13 @@ static void __scan_counts(const std::string &s, size_t &pos, int32_t &from, int3
         pos++;
 
         while (pos < s.length() && !__is_command_char(s, pos, '}')) {
-            if (__is_command_char(s, pos, ','))
-                parts.push_back(part), part = "", pos++;
-            else
+            if (__is_command_char(s, pos, ',')) {
+                parts.push_back(part);
+                part = "";
+                pos++;
+            } else {
                 part += __get_char(s, pos);
+            }
         }
 
         if (part != "")
@@ -364,10 +336,11 @@ static void __scan_counts(const std::string &s, size_t &pos, int32_t &from, int3
             numbers.push_back(number);
         }
 
-        if (numbers.size() == 1)
+        if (numbers.size() == 1) {
             from = to = numbers[0];
-        else
+        } else {
             from = numbers[0], to = numbers[1];
+        }
 
         if (from > to)
             __bigo_generator_fail("Pattern: Illegal pattern (or part) \"" + s + "\"");
@@ -396,10 +369,11 @@ static int32_t __greedy_match(const std::string &s, size_t pos, const std::vecto
 
     while (pos < s.length()) {
         char c = s[pos++];
-        if (!std::binary_search(chars.begin(), chars.end(), c))
+        if (!std::binary_search(chars.begin(), chars.end(), c)) {
             break;
-        else
+        } else {
             result++;
+        }
     }
 
     return result;
@@ -450,7 +424,12 @@ class Random {
 https://v8.dev/blog/math-random
 */
 private:
-    static const int32_t MAX_RANGE_LIMIT = 10000000;
+    static const int32_t kMaxRangeLimit = 10000000;
+    static const int32_t kMaxLoopWeight = 20;
+    static const uint64_t kExponentBits = uint64_t{0x3FF0000000000000};
+    static const int64_t kMultiplier = 0x5'deec'e66dLL;
+    static const int64_t kAddend = 0xbLL;
+    static const int64_t kMask = 0xffff'ffff'ffffLL;
 
     uint64_t state0_;
     uint64_t state1_;
@@ -458,18 +437,21 @@ private:
 
     // https://vigna.di.unimi.it/ftp/papers/xorshiftplus.pdf
     static void XorShift128(uint64_t *state0, uint64_t *state1);
-
-    static uint64_t MurmurHash3(uint64_t h);
-    uint64_t NextBits(int32_t bits);
-
     static double ToDouble(uint64_t state0);
+    static uint64_t MurmurHash3(uint64_t h);
+    static uint64_t ComputeSeed(uint64_t initial_seed, const char* str);
 
-    static const uint64_t kExponentBits = uint64_t{0x3FF0000000000000};
+    uint64_t NextBits(int32_t bits);
+    
 
+    template<typename T>
+    T WeightedNext(T max, int32_t weight);
 public:
     Random();
-
     Random(uint64_t seed);
+    Random(const char* str);
+    Random(const std::string& str);
+    Random(const int32_t argc, const char *argv[]);
 
     int64_t initial_seed() const { return initial_seed_; }
     void SetSeed(uint64_t seed);
@@ -483,7 +465,7 @@ public:
     /* Returns random 64-bit integer value in range [`0`, `max`) */
     int64_t Next(int64_t max);
 
-    /*  Returns random 64-bit integer value in range [`min`, `max`] (inclusive) */
+    /* Returns random 64-bit integer value in range [`min`, `max`] (inclusive) */
     int64_t Next(int64_t min, int64_t max);
 
     /* Returns random double value in range [`0`, `1`) */
@@ -526,17 +508,93 @@ public:
     template <class RandomAccessIterator>
     void Shuffle(RandomAccessIterator first, RandomAccessIterator last);
 
-    /* Returns edges list of a tree has `size` vertices, index from `first` */
-    std::vector<std::pair<int32_t, int32_t>> GenerateTree(int32_t size, int32_t first = 0);
+    /**
+     * Returns edges list of a tree has `size` vertices, index from `first`
+     */
+    std::vector<std::pair<int32_t, int32_t>> GenerateTree(int32_t size, int32_t first = 0, int32_t weight = 0);
 
     /**
      * Generate a rooted tree has `root`, index from `0`.
      * Returns vector parent with parent[`i`] is the parent of vetex (`i`),
      * parent of `root` is `-1`
      * */
-    std::vector<int32_t> GenerateRootedTree(int32_t size, int root = 0);
+    std::vector<int32_t> GenerateRootedTree(int32_t size, int root = 0, int32_t weight = 0);
 
-    // CONSIDER
+    /**
+     * Returns random 32-bit integer value in range [`0`, `max`)
+     * If `weight` = 0 then it is Next()
+     * If `weight` > 0, returns maximum value of `weight + 1` times Next()
+     * If `weight` < 0, returns minimum value
+     * */
+    int32_t WeightedNext(int32_t max, int32_t weight);
+
+    /**
+     * Returns random 32-bit integer value in range [`min`, `max`] (inclusive)
+     * If `weight` = 0 then it is Next()
+     * If `weight` > 0, returns maximum value of `weight + 1` times Next()
+     * If `weight` < 0, returns minimum value
+     * */
+    int32_t WeightedNext(int32_t min, int32_t max, int32_t weight);
+
+    /**
+     * Returns random 64-bit integer value in range [`0`, `max`)
+     * If `weight` = 0 then it is Next()
+     * If `weight` > 0, returns maximum value of `weight + 1` times Next()
+     * If `weight` < 0, returns minimum value
+     * */
+    int64_t WeightedNext(int64_t max, int32_t weight);
+
+    /**
+     * Returns random 64-bit integer value in range [`min`, `max`] (inclusive)
+     * If `weight` = 0 then it is Next()
+     * If `weight` > 0, returns maximum value of `weight + 1` times Next()
+     * If `weight` < 0, returns minimum value
+     * */
+    int64_t WeightedNext(int64_t min, int64_t max, int32_t weight);
+
+    /**
+     * Returns random double value in range [`0`, `1`)
+     * If `weight` = 0 then it is Next()
+     * If `weight` > 0, returns maximum value of `weight + 1` times Next()
+     * If `weight` < 0, returns minimum value
+     * */
+    double WeightedNext(int32_t weight);
+
+    /**
+     * Returns random double value in range [`0`, `max`)
+     * If `weight` = 0 then it is Next()
+     * If `weight` > 0, returns maximum value of `weight + 1` times Next()
+     * If `weight` < 0, returns minimum value
+     * */
+    double WeightedNext(double max, int32_t weight);
+
+    /**
+     * Returns random double value in range [`min`, `max`)
+     * If `weight` = 0 then it is Next()
+     * If `weight` > 0, returns maximum value of `weight + 1` times Next()
+     * If `weight` < 0, returns minimum value
+     * */
+    double WeightedNext(double min, double max, int32_t weight);
+
+    /**
+     * Returns random element from container
+     * If `weight` = 0 then it is Any()
+     * If `weight` > 0, returns maximum value of `weight + 1` times Next()
+     * If `weight` < 0, returns minimum value
+     * */
+    template <typename Container>
+    typename Container::value_type WeightedAny(const Container &c, int32_t weight);
+
+    /**
+     * Returns random element from iterator range
+     * If `weight` = 0 then it is Any()
+     * If `weight` > 0, returns maximum value of `weight + 1` times Next()
+     * If `weight` < 0, returns minimum value
+     * */
+    template <typename RandomAccessIterator>
+    typename RandomAccessIterator::value_type WeightedAny(const RandomAccessIterator &first, const RandomAccessIterator &last, int32_t weight);
+
+    // TODO CONSIDER
     // uint32_t next(uint32_t max);
     // uint32_t next(uint32_t min, uint32_t max);
     // uint64_t next(uint64_t max);
@@ -551,9 +609,29 @@ Random::Random(uint64_t seed) {
     this->SetSeed(seed);
 }
 
-inline double Random::ToDouble(uint64_t state0) {
-    uint64_t random = (state0 >> 12) | kExponentBits;
-    return __bit_cast<double>(random) - 1;
+Random::Random(const char *str){
+    uint64_t seed = ComputeSeed(3203000719597029781LL, str);
+    this->SetSeed(seed);
+}
+
+Random::Random(const std::string &str) {
+    uint64_t seed = ComputeSeed(3203000719597029781LL, str.data());
+    this->SetSeed(seed);
+}
+
+Random::Random(const int32_t argc, const char *argv[]){
+    uint64_t seed = 3203000719597029781LL;
+    for (int i = 0; i < argc; i++)
+        seed = ComputeSeed(seed, argv[i]);
+    this->SetSeed(seed);
+}
+
+uint64_t Random::ComputeSeed(uint64_t initial_seed, const char *str) {
+    uint64_t seed = initial_seed;
+    size_t len = strlen(str);
+    for (size_t i = 0; i < len; i++)
+        seed = seed * kMultiplier + str[i] + kAddend;
+    return seed + kMultiplier / kAddend;
 }
 
 inline void Random::XorShift128(uint64_t *state0, uint64_t *state1) {
@@ -565,6 +643,12 @@ inline void Random::XorShift128(uint64_t *state0, uint64_t *state1) {
     s1 ^= s0;
     s1 ^= s0 >> 26;
     *state1 = s1;
+}
+
+inline double Random::ToDouble(uint64_t state0) {
+    // Exponent for double values for [1.0 .. 2.0)
+    uint64_t random = (state0 >> 12) | kExponentBits;
+    return __bit_cast<double>(random) - 1;
 }
 
 void Random::SetSeed(uint64_t seed) {
@@ -587,19 +671,19 @@ uint64_t Random::MurmurHash3(uint64_t h) {
 
 uint64_t Random::NextBits(int32_t bits) {
     XorShift128(&state0_, &state1_);
-    return static_cast<int32_t>((state0_ + state1_) >> (64 - bits));
+    return static_cast<uint64_t>((state0_ + state1_) >> (64 - bits));
 }
 
 int32_t Random::Next(int32_t max) {
     MSG_CHECK_LT(0, max, "Random::Next(int32_t max): max must be positive");
 
-    if (__is_power_of_two(max)) {
+
+    if (__is_power_of_two(max))
         return static_cast<int>((max * static_cast<int64_t>(NextBits(31))) >> 31);
-    }
 
     int32_t rnd, limit = INT32_MAX / max * max;
     do {
-        rnd = NextBits(31);
+        rnd = this->NextBits(31);
     } while (rnd >= limit);
 
     return rnd % max;
@@ -608,10 +692,7 @@ int32_t Random::Next(int32_t max) {
 int32_t Random::Next(int32_t min, int32_t max) {
     if (min < 0 && min + INT32_MAX - 1 > max) {
         __bigo_generator_fail(
-            "Random::Next(int32_t min, int32_t max): difference between max and min is too large: %s - %s",
-            std::to_string(min).data(),
-            std::to_string(max).data()
-        );
+            "Random::Next(int32_t min, int32_t max): difference between max and min is too large: %d - %d", min, max);
     }
     return (int32_t)(this->Next((int64_t)max - min + 1)) + min;
 }
@@ -621,27 +702,23 @@ int64_t Random::Next(int64_t max) {
 
     int64_t rnd, limit = INT64_MAX / max * max;
     do {
-        rnd = NextBits(63);
+        rnd = this->NextBits(63);
     } while (rnd >= limit);
 
     return rnd % max;
 }
 
 int64_t Random::Next(int64_t min, int64_t max) {
-    if (min < 0 && min + INT64_MAX - 1 > max) {
-        __bigo_generator_fail(
-            "Random::Next(int64_t min, int64_t max): difference between max and min is too large: %s - %s",
-            std::to_string(min).data(),
-            std::to_string(max).data()
-        );
-    }
+    if (min < 0 && min + INT64_MAX - 1 > max)
+        __bigo_generator_fail("Random::Next(int64_t min, int64_t max): difference between max and min is too large: " I64 " - " I64, min, max);
 
     return this->Next(max - min + 1) + min;
 }
 
 double Random::Next() {
     XorShift128(&state0_, &state1_);
-    return ToDouble(state0_);
+
+    return Random::ToDouble(state0_);
 }
 
 double Random::Next(double max) {
@@ -668,12 +745,84 @@ typename RandomAccessIterator::value_type Random::Any(const RandomAccessIterator
     int32_t size = int32_t(last - first);
     if (size <= 0)
         __bigo_generator_fail("Random::Any(const Iter& first, const Iter& last): range must have positive length");
-    return *(first + Next(size));
+    return *(first + this->Next(size));
 }
 
 template <typename T>
-std::vector<T> Random::Permutation(T size) {
-    if (size > Random::MAX_RANGE_LIMIT)
+T Random::WeightedNext(T max, int32_t weight) {
+    if (max < T(0))
+        __bigo_generator_fail("Random::WeightedNext(max, weight): max must be positive");
+    if (std::abs(weight) <= Random::kMaxLoopWeight) {
+        T result = this->Next(max);
+        for (int i = 0; i < weight; i++)
+            result = std::max(result, this->Next(max));
+        for (int i = 0; i < -weight; i++)
+            result = std::min(result, this->Next(max));
+        return result;
+    }
+    // weight > kMaxLoopWeight, use pow to reduce complexity
+    double value = std::pow(this->Next(), 1.0 / (abs(weight) + 1));
+    if (weight < 0) value = 1 - value;
+    return T(max * value);
+}
+
+int32_t Random::WeightedNext(int32_t max, int32_t weight) {
+    MSG_CHECK_LT(0, max, "Random::WeightedNext(int32_t max, int32_t weight): max must be positive");
+
+    return this->WeightedNext<int32_t>(max, weight);
+}
+
+int32_t Random::WeightedNext(int32_t min, int32_t max, int32_t weight) {
+    if (min < 0 && min + INT32_MAX - 1 > max)
+        __bigo_generator_fail("Random::Next(int32_t min, int32_t max, int32_t weight): difference between max and min is too large: %d - %d", min, max);
+    return this->WeightedNext<int32_t>(max - min + 1, weight) + min;
+}
+
+int64_t Random::WeightedNext(int64_t max, int32_t weight) {
+    MSG_CHECK_LT(0, max, "Random::WeightedNext(int64_t max, int32_t weight): max must be positive");
+
+    return this->WeightedNext<int64_t>(max, weight);
+}
+
+int64_t Random::WeightedNext(int64_t min, int64_t max, int32_t weight) {
+    if (min < 0 && min + INT64_MAX - 1 > max)
+        __bigo_generator_fail("Random::Next(int64_t min, int64_t max, int32_t weight): difference between max and min is too large: " I64 " - " I64, min, max);
+    return this->WeightedNext<int64_t>(max - min + 1, weight) + min;
+}
+
+double Random::WeightedNext(int32_t weight) {
+    return this->WeightedNext<double>(1.0, weight);
+}
+
+double Random::WeightedNext(double max, int32_t weight) {
+    MSG_CHECK_LT(0, max, "Random::Next(double max): max must be positive");
+    return this->WeightedNext<double>(max, weight);
+}
+
+double Random::WeightedNext(double min, double max, int32_t weight) {
+    return this->WeightedNext<double>(max - min, weight) + min;
+}
+
+template <typename Container>
+typename Container::value_type Random::WeightedAny(const Container &c, int32_t weight) {
+    int32_t size = int32_t(c.size());
+    MSG_CHECK_LT(0, size, "Random::WeightedAny(const Container& c): c.size() must be positive");
+
+    return *(c.begin() + this->WeightedNext(size, weight));
+}
+
+template <typename RandomAccessIterator>
+typename RandomAccessIterator::value_type Random::WeightedAny(const RandomAccessIterator &first, const RandomAccessIterator &last, int32_t weight) {
+    int32_t size = int32_t(last - first);
+    if (size <= 0)
+        __bigo_generator_fail("Random::Any(const Iter& first, const Iter& last): range must have positive length");
+    return *(first + this->WeightedNext(size, weight));
+}
+
+template <typename T>
+std::vector<T> Random::Permutation(T size)
+{
+    if (size > Random::kMaxRangeLimit)
         __bigo_generator_fail("Random::Permutation: size must not graeter than 10000000");
     return Permutation(size, T(0));
 }
@@ -682,17 +831,19 @@ template <typename T, typename E>
 std::vector<E> Random::Permutation(T size, E first) {
     if (size < 0)
         __bigo_generator_fail("Random::Permutation: size must non-negative");
-    if (size > Random::MAX_RANGE_LIMIT)
+    if (size > Random::kMaxRangeLimit)
         __bigo_generator_fail("Random::Permutation: size must not graeter than 10000000");
-    if (size == 0) return std::vector<E>();
+    if (size == 0)
+        return std::vector<E>();
     
     std::vector<E> p(size);
     E current = first;
     for (T i = 0; i < size; i++)
         p[i] = current++;
-    if (size > 1)
+    if (size > 1) {
         for (T i = 1; i < size; i++)
             std::swap(p[i], p[Next(i + 1)]);
+    }
     return p;
 }
 
@@ -704,7 +855,7 @@ std::vector<T> Random::NextSet(int32_t size, T min, T max) {
     if (size < 0)
         __bigo_generator_fail("Random::NextSet expected size >= 0");
 
-    if (size > Random::MAX_RANGE_LIMIT)
+    if (size > Random::kMaxRangeLimit)
         __bigo_generator_fail("Random::NextSet: size must not graeter than 10000000");
 
     uint64_t n = max - min + 1;
@@ -740,7 +891,7 @@ template <typename T>
 std::vector<T> Random::NextSet(int32_t size, T max) {
     if (size < 0)
         __bigo_generator_fail("Random::NextSet expected size >= 0");
-    if (size > Random::MAX_RANGE_LIMIT)
+    if (size > Random::kMaxRangeLimit)
         __bigo_generator_fail("Random::NextSet: size must not graeter than 10000000");
     if (max <= 0)
         __bigo_generator_fail("Random::NextSet expected max > 0");
@@ -750,7 +901,7 @@ std::vector<T> Random::NextSet(int32_t size, T max) {
     if (size == 0)
         return std::vector<T>();
 
-    return NextSet(size, T(0), max - 1);
+    return this->NextSet(size, T(0), max - 1);
 }
 
 std::string Random::NextString(const std::string &pattern) {
@@ -767,31 +918,32 @@ void Random::Shuffle(RandomAccessIterator first, RandomAccessIterator last) {
     }
 }
 
-std::vector<std::pair<int32_t, int32_t>> Random::GenerateTree(int32_t size, int32_t first) {
-    if (size > Random::MAX_RANGE_LIMIT)
+std::vector<std::pair<int32_t, int32_t>> Random::GenerateTree(int32_t size, int32_t first, int32_t weight) {
+    if (size > Random::kMaxRangeLimit)
         __bigo_generator_fail("Random::GenerateTree: size must not graeter than 10000000");
 
         std::vector<int32_t> p(size);
 
     // p[i] is parent of the i-th vertex in permutation
     for (int i = 1; i < size; i++)
-        p[i] = this->Next(i);
+        p[i] = this->WeightedNext(i, weight);
     
     std::vector<int32_t> perm = this->Permutation(size);
 
     std::vector<std::pair<int32_t, int32_t>> edges;
     for (int i = 1; i < size; i++)
-        if (this->Next(2))
+        if (this->Next(2)) {
             edges.push_back({perm[i] + first, perm[p[i]] + first});
-        else
+        } else {
             edges.push_back({perm[p[i]] + first, perm[i] + first});
+        }
 
     this->Shuffle(edges.begin(), edges.end());
     return edges;
 }
 
-std::vector<int32_t> Random::GenerateRootedTree(int32_t size, int root) {
-    if (size > Random::MAX_RANGE_LIMIT)
+std::vector<int32_t> Random::GenerateRootedTree(int32_t size, int32_t root, int32_t weight) {
+    if (size > Random::kMaxRangeLimit)
         __bigo_generator_fail("Random::GenerateRootedTree: size must not graeter than 10000000");
 
     std::vector<int32_t> p(size);
@@ -799,7 +951,7 @@ std::vector<int32_t> Random::GenerateRootedTree(int32_t size, int root) {
 
     // p[i] is parent of the i-th vertex in permutation
     for (int i = 1; i < size; i++) {
-        p[i] = this->Next(i);
+        p[i] = this->WeightedNext(i, weight);
         perm[i] = i;
     }
 
@@ -849,12 +1001,9 @@ Pattern::Pattern(std::string pattern) : source_(pattern), from_(0), to_(0) {
 
     if (seps.size() == 0 && firstClose + 1 == (int32_t)source_.length() &&
         __is_command_char(source_, 0, '(') &&
-        __is_command_char(source_, source_.length() - 1, ')'))
-    {
+        __is_command_char(source_, source_.length() - 1, ')')) {
         children_.push_back(Pattern(source_.substr(1, source_.length() - 2)));
-    }
-    else
-    {
+    } else {
         if (seps.size() > 0) {
             seps.push_back(int32_t(source_.length()));
             int32_t last = 0;
@@ -890,8 +1039,9 @@ bool Pattern::Matches(const std::string &s, size_t pos) const {
             if (children_[child].Matches(s, pos))
                 return true;
         return false;
-    } else
+    } else {
         return pos == s.length();
+    }
 }
 
 std::string Pattern::Next(Random &rnd) const {
@@ -953,6 +1103,17 @@ namespace printer {
     template<typename T>
     void Print(const T &x) {
         __print_one(x);
+    }
+
+    template <size_t N, typename T>
+    void Print(const T (&arr)[N], int32_t size) {
+        for (size_t i = 0; i < size; i++)
+            std::cout << arr[i] << ' ';
+    }
+
+    template <size_t N>
+    void Print(const char (&s)[N]) {
+        std::cout << s;
     }
 
     template<typename A, typename B>
@@ -1026,6 +1187,17 @@ namespace printer {
         __print_one(e);
         std::cout << '\n';
     }
+
+    template <size_t N, typename T>
+    void PrintLine(const T (&arr)[N], int32_t size) {
+        for (size_t i = 0; i < size; i++)
+            std::cout << arr[i] << " \n"[i == size-1];
+    }
+
+    template <size_t N>
+    void PrintLine(const char (&s)[N]) {
+        std::cout << s << "\n";
+    }
 }
 
 template <typename... Args>
@@ -1033,8 +1205,8 @@ std::string Format(const char *format, Args... args) {
     return __format(format, args...);
 }
 
-void OpenTestFile(int test, std::string ext="in") {
-    const std::string testFileName = __format("%s.%s", std::to_string(test).data, ext.data());
+void OpenTestFile(int32_t test_number, std::string ext="in") {
+    const std::string testFileName = __format("%d.%s", test_number, ext.data());
     if (!freopen(testFileName.c_str(), "wt", stdout))
         __bigo_generator_fail("Unable to write file '" + testFileName + "'");
 }

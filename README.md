@@ -2,11 +2,17 @@
 
 **WARNING!!!**: tool chỉ hỗ trợ tạo test nhanh hơn, không hỗ trợ tạo test chặt hơn, muốn tạo test chặt thì phải phân chia trường hợp và lên chiến lượt cho từng trường hợp trước khi tạo test.
 
-Thư viện hỗ trợ random các đối tượng trong quá trình tạo test case các bài toán thuật toán. Sử dụng `random.h` như một thư viện bình thường. Cần biên dịch với chuẩn C++11 (`-std=c++11`) hoặc hơn.
+Thư viện hỗ trợ random các đối tượng trong quá trình tạo test case các bài toán thuật toán. Sử dụng `random.h` như một thư viện bình thường. Cần biên dịch với chuẩn C++11 (`-std=c++11`) hoặc mới hơn.
+
+## Cách sử dụng:
+
+Chỉ cần copy file `random.h` vào folder chứa code tạo test của bạn và import file vào để sử dụng.
+
+## Các thành phần chính:
 
 Có 3 thành phần chính trong thư viện:
 
-## 1. Class Random
+### 1. Class Random
 
 Chứa toàn bộ các hàm random ngẫu nhiên thường dùng. Được xây dựng dựa trên ý tưởng của [testlib](https://github.com/MikeMirzayanov/testlib), nhưng được xây dựng lại bằng thuật toán Xor Shift 128 được sử dụng trong V8 JavaScript engine và bổ sung một số chức năng mà mình cảm thấy testlib chưa hỗ trợ
 
@@ -40,7 +46,7 @@ Chứa toàn bộ các hàm random ngẫu nhiên thường dùng. Được xây 
 | T WeightedAny(...) | Tương tự WeightedNext() |
 
 
-## 2. Namespace `printer`
+### 2. Namespace `printer`
 
 Chứa các hàm hỗ trợ in nhanh các đối tượng. Toàn bộ đều sẽ in xuống luồng xuất chuẩn (`stdout`)
 
@@ -55,7 +61,8 @@ Lưu ý: Đối với mảng tĩnh, có thể in bằng 2 cách: `Print/PrintLin
 ```cpp
 int a[] = {1, 2, 3, 4, 5};
 printer::PrintLine(a, 5);
-printer::PrintLine(1, '2', 3.0);
+printer::PrintLine(1, '2', 3.0, "this is a string");
+printer::PrintLine("another string");
 ```
 
 Hoặc
@@ -63,11 +70,20 @@ Hoặc
 ```cpp
 using namespace printer;
 int a[] = {1, 2, 3, 4, 5};
-PrintLine(a);
-PrintLine(1, '2', 3.0);
+PrintLine(a, 5);
+PrintLine(1, '2', 3.0, "this is a string");
+PrintLine("another string");
 ```
 
-## 3. Các hàm hỗ trợ chung
+Kết quả:
+
+```console
+1 2 3 4 5
+1 2 3 this is a string
+another string
+```
+
+### 3. Các hàm hỗ trợ chung
 
 - _`std::string Format(const char *format, ...args)`_: trả về một chuỗi sau khi format, tương tự như hàm `printf`. Ví dụ `Format("%d + %d = %d", 1, 2, 1+2)` sẽ trả về "`1 + 2 = 3`"
 - _`void OpenTestFile(int test_number, std::string ext)`_: Mở file một file có tên `${test_number}.{ext}` (`ext` mặc định là `in`) và redirect vào `stdout` để ghi test case.

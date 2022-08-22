@@ -168,6 +168,11 @@ __print_one(const T &t) {
     }
 }
 
+template <size_t N>
+void __print_one(const char (&t)[N]) {
+    std::cout << t;
+}
+
 template <>
 typename __bigo_enable_if<is_iterable<std::string>::value, void>::type
 __print_one<std::string>(const std::string &t) {

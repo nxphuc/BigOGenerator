@@ -88,6 +88,32 @@ another string
 - _`std::string Format(const char *format, ...args)`_: trả về một chuỗi sau khi format, tương tự như hàm `printf`. Ví dụ `Format("%d + %d = %d", 1, 2, 1+2)` sẽ trả về "`1 + 2 = 3`"
 - _`void OpenTestFile(int test_number, std::string ext)`_: Mở file một file có tên `${test_number}.{ext}` (`ext` mặc định là `in`) và redirect vào `stdout` để ghi test case.
 
+## Mã nguồn minh họa:
+
+```cpp
+#include <bits/stdc++.h>
+#include "random.h"
+
+int main(int argc, char* argv[]) {
+    Random rnd;
+    int cnt[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+
+    std::cout << rnd.Next() << "\n";   // random số thực trong khoảng [0.0, 1.0)
+    std::cout << rnd.Next(10) << "\n"; // random số nguyên trong khoảng [0, 10)
+    std::cout << rnd.Next(10LL, 100LL) << "\n"; // random số nguyên 64-bits trong khoảng [10, 100]
+    
+    int a[] = {23, 12, 45, 98, 0, 5, 33, 59, 75, 77};
+    std::cout << rnd.Any(a + 0, a + 10) << "\n";
+    rnd.Shuffle(a, a+10);
+    printer::PrintLine(a, 10);
+    
+    std::vector<int> perm = rnd.Permutation(10);
+    printer::PrintLine(perm);
+
+    return 0;
+}
+```
+
 ## Bugs
 
 - Chưa sử dụng được các hàm `Print`/`PrintLine` với Containter chứa `std::pair` (vẫn sử dụng được để in `std::pair`)

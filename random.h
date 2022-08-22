@@ -488,7 +488,11 @@ public:
 
     /* Returns random element from iterator range. */
     template <typename RandomAccessIterator>
-    typename RandomAccessIterator::value_type Any(const RandomAccessIterator &first, const RandomAccessIterator &last);
+    typename RandomAccessIterator::value_type Any(const RandomAccessIterator& first, const RandomAccessIterator& last);
+
+    /* Returns random element from iterator range. */
+    template <typename T>
+    T Any(T* first, T* last);
 
     /* Returns random permutation of [`0`, `size - 1`]*/
     template <typename T>
@@ -746,10 +750,18 @@ typename Container::value_type Random::Any(const Container &c) {
 }
 
 template <typename RandomAccessIterator>
-typename RandomAccessIterator::value_type Random::Any(const RandomAccessIterator &first, const RandomAccessIterator &last) {
+typename RandomAccessIterator::value_type Random::Any(const RandomAccessIterator& first, const RandomAccessIterator& last) {
     int32_t size = int32_t(last - first);
     if (size <= 0)
         __bigo_generator_fail("Random::Any(const Iter& first, const Iter& last): range must have positive length");
+    return *(first + this->Next(size));
+}
+
+template <typename T>
+T Random::Any(T* first, T* last) {
+    int32_t size = int32_t(last - first);
+    if (size <= 0)
+        __bigo_generator_fail("Random::Any(const T* &first, const T* &last): range must have positive length");
     return *(first + this->Next(size));
 }
 

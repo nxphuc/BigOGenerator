@@ -10,11 +10,18 @@
 #endif
 
 #if (_WIN32 || __WIN32__ || __WIN32 || _WIN64 || __WIN64__ || __WIN64 || WINNT || __WINNT || __WINNT__ || __CYGWIN__)
-#define I64 "%I64d"
-#define U64 "%I64u"
+#   include <io.h>
+#   define I64 "%I64d"
+#   define U64 "%I64u"
+#   if defined(_MSC_VER) && _MSC_VER > 1400
+#       pragma warning( disable : 4127 )
+#       pragma warning( disable : 4146 )
+#       pragma warning( disable : 4458 )
+#       pragma warning( disable : 4996 )
+#   endif
 #else
-#define I64 "%lld"
-#define U64 "%llu"
+#   define I64 "%lld"
+#   define U64 "%llu"
 #endif
 
 #include <cstdio>
@@ -33,6 +40,13 @@
 #include <fcntl.h>
 #include <functional>
 #include <chrono>
+#include <memory>
+#include <algorithm>
+#include <cstdlib>
+#include <climits>
+
+template <class T>
+using decay_t = typename std::decay<T>::type;
 
 template <typename... Args>
 std::string __format(const char *format, Args... args) {
@@ -129,7 +143,7 @@ struct is_iterator<T, typename __bigo_enable_if<std::is_array<T>::value>::type> 
 };
 
 template <typename T>
-using is_string_like = std::is_same<std::string, std::decay_t<T>>;
+using is_string_like = std::is_same<std::string, decay_t<T>>;
 
 /* check if iterator is a pair */
 template <typename T>
@@ -392,12 +406,12 @@ static int32_t __greedy_match(const std::string &s, size_t pos, const std::vecto
 #define CHECK_LEQ(a, b) CHECK_OP(a, b, <= __format("BIG-O RANDOM ERROR: %d is not less than or equal to %d", a, b))
 #define CHECK_GEQ(a, b) CHECK_OP(a, b, >=, __format("BIG-O RANDOM ERROR: %d is not greater than or equal to %d", a, b))
 
-#define MSG_CHECK_EQ(a, b, msg, ...) CHECK_OP(a, b, ==, __format(msg __VA_OPT__(,) __VA_ARGS__))
-#define MSG_CHECK_LT(a, b, msg, ...) CHECK_OP(a, b, <, __format(msg __VA_OPT__(,) __VA_ARGS__))
-#define MSG_CHECK_GT(a, b, msg, ...) CHECK_OP(a, b, >, __format(msg __VA_OPT__(, ) __VA_ARGS__))
-#define MSG_CHECK_NEQ(a, b, msg, ...) CHECK_OP(a, b, !=, __format(msg __VA_OPT__(,) __VA_ARGS__))
-#define MSG_CHECK_LEQ(a, b, msg, ...) CHECK_OP(a, b, <=, __format(msg __VA_OPT__(,) __VA_ARGS__))
-#define MSG_CHECK_GEQ(a, b, msg, ...) CHECK_OP(a, b, >=, __format(msg __VA_OPT__(,) __VA_ARGS__))
+#define MSG_CHECK_EQ(a, b, msg, ...) CHECK_OP(a, b, ==, __format(msg, ## __VA_ARGS__))
+#define MSG_CHECK_LT(a, b, msg, ...) CHECK_OP(a, b, <, __format(msg, ## __VA_ARGS__))
+#define MSG_CHECK_GT(a, b, msg, ...) CHECK_OP(a, b, >, __format(msg, ## __VA_ARGS__))
+#define MSG_CHECK_NEQ(a, b, msg, ...) CHECK_OP(a, b, !=, __format(msg, ## __VA_ARGS__))
+#define MSG_CHECK_LEQ(a, b, msg, ...) CHECK_OP(a, b, <=, __format(msg, ## __VA_ARGS__))
+#define MSG_CHECK_GEQ(a, b, msg, ...) CHECK_OP(a, b, >=, __format(msg, ## __VA_ARGS__))
 
 class Random;
 
@@ -432,9 +446,9 @@ private:
     static const int32_t kMaxRangeLimit = 10000000;
     static const int32_t kMaxLoopWeight = 20;
     static const uint64_t kExponentBits = uint64_t{0x3FF0000000000000};
-    static const int64_t kMultiplier = 0x5'deec'e66dLL;
-    static const int64_t kAddend = 0xbLL;
-    static const int64_t kMask = 0xffff'ffff'ffffLL;
+    static const int64_t kMultiplier = 0x5DEECE66DLL;
+    static const int64_t kAddend = 0xBLL;
+    static const int64_t kMask = 0xFFFFFFFFFFFFLL;
 
     uint64_t state0_;
     uint64_t state1_;
@@ -454,24 +468,24 @@ private:
 public:
     Random();
     Random(uint64_t seed);
-    Random(const char* str);
+    Random(char* str);
     Random(const std::string& str);
-    Random(const int32_t argc, const char *argv[]);
+    Random(int32_t argc, char *argv[]);
 
     int64_t initial_seed() const { return initial_seed_; }
     void SetSeed(uint64_t seed);
 
     /* Returns random 32-bit integer value in range [`0`, `max`) */
-    int32_t Next(int32_t max);
+    int Next(int max);
 
     /* Returns random 32-bit integer value in range [`min`, `max`] (inclusive) */
-    int32_t Next(int32_t min, int32_t max);
+    int Next(int min, int max);
 
     /* Returns random 64-bit integer value in range [`0`, `max`) */
-    int64_t Next(int64_t max);
+    long long Next(long long max);
 
     /* Returns random 64-bit integer value in range [`min`, `max`] (inclusive) */
-    int64_t Next(int64_t min, int64_t max);
+    long long Next(long long min, long long max);
 
     /* Returns random double value in range [`0`, `1`) */
     double Next();
@@ -535,7 +549,7 @@ public:
      * If `weight` > 0, returns maximum value of `weight + 1` times Next()
      * If `weight` < 0, returns minimum value
      * */
-    int32_t WeightedNext(int32_t max, int32_t weight);
+    int WeightedNext(int max, int32_t weight);
 
     /**
      * Returns random 32-bit integer value in range [`min`, `max`] (inclusive)
@@ -543,7 +557,7 @@ public:
      * If `weight` > 0, returns maximum value of `weight + 1` times Next()
      * If `weight` < 0, returns minimum value
      * */
-    int32_t WeightedNext(int32_t min, int32_t max, int32_t weight);
+    int WeightedNext(int min, int max, int32_t weight);
 
     /**
      * Returns random 64-bit integer value in range [`0`, `max`)
@@ -551,7 +565,7 @@ public:
      * If `weight` > 0, returns maximum value of `weight + 1` times Next()
      * If `weight` < 0, returns minimum value
      * */
-    int64_t WeightedNext(int64_t max, int32_t weight);
+    long long WeightedNext(long long max, int32_t weight);
 
     /**
      * Returns random 64-bit integer value in range [`min`, `max`] (inclusive)
@@ -559,7 +573,7 @@ public:
      * If `weight` > 0, returns maximum value of `weight + 1` times Next()
      * If `weight` < 0, returns minimum value
      * */
-    int64_t WeightedNext(int64_t min, int64_t max, int32_t weight);
+    long long WeightedNext(long long min, long long max, int32_t weight);
 
     /**
      * Returns random double value in range [`0`, `1`)
@@ -618,7 +632,7 @@ Random::Random(uint64_t seed) {
     this->SetSeed(seed);
 }
 
-Random::Random(const char *str){
+Random::Random(char *str){
     uint64_t seed = ComputeSeed(3203000719597029781LL, str);
     this->SetSeed(seed);
 }
@@ -628,7 +642,7 @@ Random::Random(const std::string &str) {
     this->SetSeed(seed);
 }
 
-Random::Random(const int32_t argc, const char *argv[]){
+Random::Random(int32_t argc, char *argv[]){
     uint64_t seed = 3203000719597029781LL;
     for (int i = 0; i < argc; i++)
         seed = ComputeSeed(seed, argv[i]);
@@ -683,14 +697,14 @@ uint64_t Random::NextBits(int32_t bits) {
     return static_cast<uint64_t>((state0_ + state1_) >> (64 - bits));
 }
 
-int32_t Random::Next(int32_t max) {
+int Random::Next(int max) {
     MSG_CHECK_LT(0, max, "Random::Next(int32_t max): max must be positive");
 
 
     if (__is_power_of_two(max))
         return static_cast<int>((max * static_cast<int64_t>(NextBits(31))) >> 31);
 
-    int32_t rnd, limit = INT32_MAX / max * max;
+    int rnd, limit = INT32_MAX / max * max;
     do {
         rnd = this->NextBits(31);
     } while (rnd >= limit);
@@ -698,15 +712,15 @@ int32_t Random::Next(int32_t max) {
     return rnd % max;
 }
 
-int32_t Random::Next(int32_t min, int32_t max) {
+int Random::Next(int min, int max) {
     if (min < 0 && min + INT32_MAX - 1 > max) {
         __bigo_generator_fail(
             "Random::Next(int32_t min, int32_t max): difference between max and min is too large: %d - %d", min, max);
     }
-    return (int32_t)(this->Next((int64_t)max - min + 1)) + min;
+    return (int)(this->Next((long long)max - min + 1)) + min;
 }
 
-int64_t Random::Next(int64_t max) {
+long long Random::Next(long long max) {
     MSG_CHECK_LT(0LL, max, "Random::Next(int64_t max): max must be positive");
 
     int64_t rnd, limit = INT64_MAX / max * max;
@@ -717,7 +731,8 @@ int64_t Random::Next(int64_t max) {
     return rnd % max;
 }
 
-int64_t Random::Next(int64_t min, int64_t max) {
+long long Random::Next(long long min, long long max)
+{
     if (min < 0 && min + INT64_MAX - 1 > max)
         __bigo_generator_fail("Random::Next(int64_t min, int64_t max): difference between max and min is too large: " I64 " - " I64, min, max);
 
@@ -783,28 +798,28 @@ T Random::WeightedNext(T max, int32_t weight) {
     return T(max * value);
 }
 
-int32_t Random::WeightedNext(int32_t max, int32_t weight) {
+int Random::WeightedNext(int max, int32_t weight) {
     MSG_CHECK_LT(0, max, "Random::WeightedNext(int32_t max, int32_t weight): max must be positive");
 
-    return this->WeightedNext<int32_t>(max, weight);
+    return this->WeightedNext<int>(max, weight);
 }
 
-int32_t Random::WeightedNext(int32_t min, int32_t max, int32_t weight) {
+int Random::WeightedNext(int min, int max, int32_t weight) {
     if (min < 0 && min + INT32_MAX - 1 > max)
         __bigo_generator_fail("Random::Next(int32_t min, int32_t max, int32_t weight): difference between max and min is too large: %d - %d", min, max);
-    return this->WeightedNext<int32_t>(max - min + 1, weight) + min;
+    return this->WeightedNext<int>(max - min + 1, weight) + min;
 }
 
-int64_t Random::WeightedNext(int64_t max, int32_t weight) {
+long long Random::WeightedNext(long long max, int32_t weight) {
     MSG_CHECK_LT(0, max, "Random::WeightedNext(int64_t max, int32_t weight): max must be positive");
 
-    return this->WeightedNext<int64_t>(max, weight);
+    return this->WeightedNext<long long>(max, weight);
 }
 
-int64_t Random::WeightedNext(int64_t min, int64_t max, int32_t weight) {
+long long Random::WeightedNext(long long min, long long max, int32_t weight) {
     if (min < 0 && min + INT64_MAX - 1 > max)
         __bigo_generator_fail("Random::Next(int64_t min, int64_t max, int32_t weight): difference between max and min is too large: " I64 " - " I64, min, max);
-    return this->WeightedNext<int64_t>(max - min + 1, weight) + min;
+    return this->WeightedNext<long long>(max - min + 1, weight) + min;
 }
 
 double Random::WeightedNext(int32_t weight) {

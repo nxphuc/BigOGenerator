@@ -25,10 +25,10 @@ Chứa toàn bộ các hàm random ngẫu nhiên thường dùng. Được xây 
 | Random(const int32_t agrc, const char* argv[]) | Constructor, tạo generator với `seed` được tính theo mảng `argv` gồm `argc` phần tử. Có thể sử dụng constructor này để tạo `rnd` khi chạy code với command line |
 | int64_t initial_seed | Lấy giá trị `seed` hiện tại |
 | SetSeed(int64_t seed) | Thay đổi `seed` của generator |
-| int32_t Next(int32_t max) | Random một số nguyên 32 bit nằm trong khoảng [`0`, `max`) |
-| int32_t Next(int32_t min, int32_t max) | Random một số nguyên 32 bit trong khoảng [`min`, `max`] |
-| int64_t Next(int64_t max) | Random một số nguyên 64 bit nằm trong khoảng [`0`, `max`) |
-| int64_t Next(int64_t min, int64_t max) | Random một số nguyên 6 bit trong khoảng [`min`, `max`] |
+| int Next(int max) | Random một số nguyên 32 bit nằm trong khoảng [`0`, `max`) |
+| int Next(int min, int max) | Random một số nguyên 32 bit trong khoảng [`min`, `max`] |
+| long long Next(long long max) | Random một số nguyên 64 bit nằm trong khoảng [`0`, `max`) |
+| long long Next(long long min, long long max) | Random một số nguyên 6 bit trong khoảng [`min`, `max`] |
 | double Next() | Random một số thực trong khoảng [`0`, `1`) |
 | double Next(double max) | Random một số thực trong khoảng [`0`, `max`) |
 | double Next(double min, double max) | Random một số thực trong khoảng [`0`, `max`) |

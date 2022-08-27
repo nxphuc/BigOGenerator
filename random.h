@@ -713,7 +713,7 @@ int Random::Next(int max) {
 }
 
 int Random::Next(int min, int max) {
-    if (min < 0 && min + INT32_MAX - 1 > max) {
+    if (min < 0 && min + INT32_MAX - 1 < max) {
         __bigo_generator_fail(
             "Random::Next(int32_t min, int32_t max): difference between max and min is too large: %d - %d", min, max);
     }
@@ -733,7 +733,7 @@ long long Random::Next(long long max) {
 
 long long Random::Next(long long min, long long max)
 {
-    if (min < 0 && min + INT64_MAX - 1 > max)
+    if (min < 0 && min + INT64_MAX - 1 < max)
         __bigo_generator_fail("Random::Next(int64_t min, int64_t max): difference between max and min is too large: " I64 " - " I64, min, max);
 
     return this->Next(max - min + 1) + min;
@@ -805,7 +805,7 @@ int Random::WeightedNext(int max, int32_t weight) {
 }
 
 int Random::WeightedNext(int min, int max, int32_t weight) {
-    if (min < 0 && min + INT32_MAX - 1 > max)
+    if (min < 0 && min + INT32_MAX - 1 < max)
         __bigo_generator_fail("Random::Next(int32_t min, int32_t max, int32_t weight): difference between max and min is too large: %d - %d", min, max);
     return this->WeightedNext<int>(max - min + 1, weight) + min;
 }
@@ -817,7 +817,7 @@ long long Random::WeightedNext(long long max, int32_t weight) {
 }
 
 long long Random::WeightedNext(long long min, long long max, int32_t weight) {
-    if (min < 0 && min + INT64_MAX - 1 > max)
+    if (min < 0 && min + INT64_MAX - 1 < max)
         __bigo_generator_fail("Random::Next(int64_t min, int64_t max, int32_t weight): difference between max and min is too large: " I64 " - " I64, min, max);
     return this->WeightedNext<long long>(max - min + 1, weight) + min;
 }
